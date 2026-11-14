@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from core.database import Base, engine, get_db
 from models.domain import Expense, User, Vehicle
 from schemas.api_schemas import ExpenseCreate, ExpenseRead, ExpenseStatus
+from services.ai_extractor import ReceiptAIParser
 
 
 @asynccontextmanager
@@ -25,6 +26,13 @@ app = FastAPI(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/api/v1/expenses/extract")
+async def extract_expense(receipt: UploadFile = File(...)):
+    file_bytes = await receipt.read()
+    parser = ReceiptAIParser()
+    return await parser.extract_data_from_image(file_bytes)
 
 
 @app.post(
